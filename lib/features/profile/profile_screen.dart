@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/admin_allowlist.dart';
 import '../../core/constants/app_flags.dart';
 import '../../core/models/user_preferences.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -17,7 +19,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _authService = AuthService();
   var _prefs = const UserPreferences();
+
+  bool get _canModerate =>
+      AppFlags.enableModerationConsole &&
+      AdminAllowlist.isAdmin(_authService.currentUser?.uid);
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            if (AppFlags.enableModerationConsole) ...[
+            if (_canModerate) ...[
               const SizedBox(height: AppSpacing.xl),
               OutlinedButton.icon(
                 onPressed: () {

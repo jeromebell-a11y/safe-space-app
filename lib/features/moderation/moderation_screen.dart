@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/admin_allowlist.dart';
 import '../../core/constants/app_flags.dart';
 import '../../core/models/report.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/moderation_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -17,6 +19,7 @@ class ModerationScreen extends StatefulWidget {
 
 class _ModerationScreenState extends State<ModerationScreen> {
   final _repository = ModerationRepository();
+  final _authService = AuthService();
 
   List<Report> _pendingReports = const [];
   bool _isLoading = true;
@@ -103,7 +106,8 @@ class _ModerationScreenState extends State<ModerationScreen> {
           ),
         ],
       ),
-      body: !AppFlags.enableModerationConsole
+      body: !AppFlags.enableModerationConsole ||
+              !AdminAllowlist.isAdmin(_authService.currentUser?.uid)
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
