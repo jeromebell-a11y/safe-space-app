@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/geo_location.dart';
@@ -92,14 +93,16 @@ class _ReportScreenState extends State<ReportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Report submission failed: $e');
+      debugPrintStack(stackTrace: st, label: 'ReportScreen._submit');
       if (!mounted) return;
       setState(() {
         _isSubmitting = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to submit report. Please try again.'),
+        SnackBar(
+          content: Text('Unable to submit report: $e'),
         ),
       );
     }
