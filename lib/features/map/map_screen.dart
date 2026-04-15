@@ -16,7 +16,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../safety/nearby_activity_screen.dart';
 import '../sharing/share_safety_screen.dart';
-import 'widgets/map_placeholder.dart';
+import 'widgets/safe_space_map.dart';
 import 'widgets/safety_status_panel.dart';
 import 'widgets/zone_summary_chip.dart';
 
@@ -48,6 +48,8 @@ class _MapScreenState extends State<MapScreen> {
   List<Report> _nearbyReports = const [];
   List<Incident> _nearbyIncidents = const [];
   SafetyZone? _currentZone;
+  double? _userLat;
+  double? _userLng;
   bool _isLoading = true;
 
   @override
@@ -66,6 +68,12 @@ class _MapScreenState extends State<MapScreen> {
         position.longitude,
       );
       prefix = geohash.substring(0, _geohashPrefixLength);
+      if (mounted) {
+        setState(() {
+          _userLat = position.latitude;
+          _userLng = position.longitude;
+        });
+      }
     } catch (_) {
       // Location unavailable — fall through to unfiltered query.
     }
@@ -204,9 +212,10 @@ class _MapScreenState extends State<MapScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: MapPlaceholder(
+            child: SafeSpaceMap(
+              latitude: _userLat,
+              longitude: _userLng,
               level: _isLoading ? null : _safetyState.level,
-              zone: _currentZone,
             ),
           ),
           if (!_isLoading && _currentZone != null)
