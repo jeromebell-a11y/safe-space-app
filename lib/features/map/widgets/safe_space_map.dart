@@ -6,6 +6,7 @@ import '../../../core/models/incident.dart';
 import '../../../core/models/safety_level.dart';
 import '../../../core/theme/app_colors.dart';
 import 'incident_marker_widget.dart';
+import 'incident_preview_sheet.dart';
 
 class SafeSpaceMap extends StatelessWidget {
   const SafeSpaceMap({
@@ -115,8 +116,12 @@ class SafeSpaceMap extends StatelessWidget {
                     ),
                     width: 28,
                     height: 28,
-                    child: IncidentMarkerWidget(
-                      severity: incident.severity,
+                    child: GestureDetector(
+                      onTap: () =>
+                          IncidentPreviewSheet.show(context, incident),
+                      child: IncidentMarkerWidget(
+                        severity: incident.severity,
+                      ),
                     ),
                   ),
                 )
