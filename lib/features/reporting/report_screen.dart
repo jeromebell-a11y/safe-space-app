@@ -5,6 +5,8 @@ import '../../core/models/geo_location.dart';
 import '../../core/models/report.dart';
 import '../../core/models/report_category.dart';
 import '../../core/models/report_status.dart';
+import '../../core/services/geohash_service.dart';
+import '../../core/services/location_service.dart';
 import '../../core/services/reports_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -23,6 +25,8 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   final _repository = ReportsRepository();
+  final _locationService = LocationService();
+  final _geohashService = GeohashService();
   ReportCategory? _selectedCategory;
   final _notesController = TextEditingController();
   bool _hasMockMedia = false;
@@ -52,25 +56,42 @@ class _ReportScreenState extends State<ReportScreen> {
       _isSubmitting = true;
     });
 
-    final docId = FirebaseFirestore.instance.collection('reports').doc().id;
-    final report = Report(
-      id: docId,
-      category: _selectedCategory!,
-      notes: _notesController.text.trim(),
-      hasMedia: _hasMockMedia,
-      location: const GeoLocation(latitude: 0, longitude: 0),
-      geohash: 'unknown',
-      createdAt: DateTime.now(),
-      status: ReportStatus.pending,
-    );
-
     try {
+      final position = await _locationService.getCurrentPosition();
+      final geohash = _geohashService.encode(
+        position.latitude,
+        position.longitude,
+      );
+
+      final docId = FirebaseFirestore.instance.collection('reports').doc().id;
+      final report = Report(
+        id: docId,
+        category: _selectedCategory!,
+        notes: _notesController.text.trim(),
+        hasMedia: _hasMockMedia,
+        location: GeoLocation(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        ),
+        geohash: geohash,
+        createdAt: DateTime.now(),
+        status: ReportStatus.pending,
+      );
+
       await _repository.submitReport(report);
       if (!mounted) return;
       setState(() {
         _isSubmitted = true;
         _isSubmitting = false;
       });
+    } on LocationServiceException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {

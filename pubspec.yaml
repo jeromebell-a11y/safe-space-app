@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_core: ^4.7.0
   cloud_firestore: ^6.3.0
+  geolocator: ^14.0.2
+  dart_geohash: ^2.1.0
 
 dev_dependencies:
   flutter_test:
