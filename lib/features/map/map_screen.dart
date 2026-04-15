@@ -10,10 +10,12 @@ import '../../core/services/nearby_reports_repository.dart';
 import '../../core/services/safety_scoring_service.dart';
 import '../../core/services/safety_zone_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_spacing.dart';
 import '../safety/nearby_activity_screen.dart';
 import '../sharing/share_safety_screen.dart';
 import 'widgets/map_placeholder.dart';
 import 'widgets/safety_status_panel.dart';
+import 'widgets/zone_summary_chip.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -39,7 +41,6 @@ class _MapScreenState extends State<MapScreen> {
   );
 
   List<Report> _nearbyReports = const [];
-  // ignore: unused_field
   SafetyZone? _currentZone;
   bool _isLoading = true;
 
@@ -89,6 +90,20 @@ class _MapScreenState extends State<MapScreen> {
       body: Stack(
         children: [
           const Positioned.fill(child: MapPlaceholder()),
+          if (!_isLoading && _currentZone != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    child: ZoneSummaryChip(zone: _currentZone!),
+                  ),
+                ),
+              ),
+            ),
           if (_isLoading)
             const Positioned(
               top: 0,
