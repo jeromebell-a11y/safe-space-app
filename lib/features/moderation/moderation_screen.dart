@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_flags.dart';
 import '../../core/models/report.dart';
 import '../../core/services/moderation_repository.dart';
 import '../../core/theme/app_colors.dart';
@@ -102,7 +103,34 @@ class _ModerationScreenState extends State<ModerationScreen> {
           ),
         ],
       ),
-      body: _isLoading
+      body: !AppFlags.enableModerationConsole
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 48,
+                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Not available',
+                    style: AppTextStyles.subtitle.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Moderation access is restricted.',
+                    style: AppTextStyles.caption.copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _pendingReports.isEmpty
               ? Center(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_flags.dart';
 import '../../core/models/user_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
@@ -124,26 +125,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ModerationScreen(),
+            if (AppFlags.enableModerationConsole) ...[
+              const SizedBox(height: AppSpacing.xl),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ModerationScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                label: const Text('Moderation Console'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  side: const BorderSide(color: AppColors.border),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
                   ),
-                );
-              },
-              icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
-              label: const Text('Moderation Console'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                side: const BorderSide(color: AppColors.border),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
