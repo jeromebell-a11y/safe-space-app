@@ -179,18 +179,25 @@ class _MapScreenState extends State<MapScreen> {
       SafetyLevel.high => 'High Activity',
     };
 
-    final summary = switch (level) {
-      SafetyLevel.low => 'Minimal recent activity in your area.',
-      SafetyLevel.elevated =>
-        'Recent incident activity suggests increased awareness in this area.',
-      SafetyLevel.high =>
-        'Multiple significant reports suggest caution in this area.',
+    final freshness = zone.freshnessLevel ?? 'stale';
+    final summary = switch (freshness) {
+      'active' => 'Active incidents reported nearby — stay aware.',
+      'recent' => 'Recent incident activity in this area.',
+      'aging' => 'Incident activity is cooling down in this area.',
+      _ => 'No recent incidents — area appears calm.',
     };
 
     final age = DateTime.now().difference(zone.lastUpdated);
     final recency = age.inMinutes < 60
         ? '${age.inMinutes}m ago'
         : '${age.inHours}h ago';
+
+    final freshnessLabel = switch (freshness) {
+      'active' => 'Active',
+      'recent' => 'Recent',
+      'aging' => 'Aging',
+      _ => 'Stale',
+    };
 
     return SafetyState(
       level: level,
@@ -199,7 +206,7 @@ class _MapScreenState extends State<MapScreen> {
       bullets: [
         '${zone.incidentCount} report${zone.incidentCount == 1 ? '' : 's'}'
             ' nearby (risk score: ${zone.riskScore.toStringAsFixed(1)})',
-        'Last updated: $recency',
+        'Intelligence freshness: $freshnessLabel · Updated $recency',
       ],
     );
   }

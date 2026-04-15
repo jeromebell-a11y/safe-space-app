@@ -45,6 +45,10 @@ class ZoneSummaryChip extends StatelessWidget {
             text:
                 '${zone.incidentCount} nearby report${zone.incidentCount == 1 ? '' : 's'}',
           ),
+          if (zone.freshnessLevel != null) ...[
+            const SizedBox(width: AppSpacing.md),
+            _buildFreshnessBadge(zone.freshnessLevel!),
+          ],
           const SizedBox(width: AppSpacing.md),
           Text(
             updatedText,
@@ -71,6 +75,30 @@ class ZoneSummaryChip extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildFreshnessBadge(String level) {
+    final (label, color) = switch (level) {
+      'active' => ('Active', AppColors.highSafety),
+      'recent' => ('Recent', AppColors.elevatedSafety),
+      'aging' => ('Aging', AppColors.textSecondary),
+      _ => ('Stale', AppColors.border),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: AppTextStyles.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 10,
+        ),
+      ),
     );
   }
 
