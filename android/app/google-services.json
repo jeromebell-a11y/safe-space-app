@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "310160855148",
+    "project_id": "safe-space-geo-app",
+    "storage_bucket": "safe-space-geo-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:310160855148:android:f01a7e5a0f48270ee88849",
+        "android_client_info": {
+          "package_name": "com.example.safe_space"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZOs2jPlYh9N6L3gJ1CvniEtM_6QeKV2c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,6 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/models/geo_location.dart';
+import '../../core/models/report.dart';
 import '../../core/models/report_category.dart';
+import '../../core/models/report_status.dart';
+import '../../core/services/reports_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -17,10 +22,12 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
+  final _repository = ReportsRepository();
   ReportCategory? _selectedCategory;
   final _notesController = TextEditingController();
   bool _hasMockMedia = false;
   bool _isSubmitted = false;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -34,13 +41,47 @@ class _ReportScreenState extends State<ReportScreen> {
       _notesController.clear();
       _hasMockMedia = false;
       _isSubmitted = false;
+      _isSubmitting = false;
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_selectedCategory == null) return;
+
     setState(() {
-      _isSubmitted = true;
+      _isSubmitting = true;
     });
+
+    final docId = FirebaseFirestore.instance.collection('reports').doc().id;
+    final report = Report(
+      id: docId,
+      category: _selectedCategory!,
+      notes: _notesController.text.trim(),
+      hasMedia: _hasMockMedia,
+      location: const GeoLocation(latitude: 0, longitude: 0),
+      geohash: 'unknown',
+      createdAt: DateTime.now(),
+      status: ReportStatus.pending,
+    );
+
+    try {
+      await _repository.submitReport(report);
+      if (!mounted) return;
+      setState(() {
+        _isSubmitted = true;
+        _isSubmitting = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to submit report. Please try again.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -113,7 +154,9 @@ class _ReportScreenState extends State<ReportScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _selectedCategory != null ? _submit : null,
+              onPressed: _selectedCategory != null && !_isSubmitting
+                  ? _submit
+                  : null,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.textPrimary,
                 foregroundColor: AppColors.surface,
@@ -124,7 +167,16 @@ class _ReportScreenState extends State<ReportScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Submit Report'),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  : const Text('Submit Report'),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),

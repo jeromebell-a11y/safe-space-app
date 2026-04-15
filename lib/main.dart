@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'app/app.dart';
+import 'firebase/firebase_initializer.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseInitializer.initialize();
   runApp(const SafeSpaceApp());
 }
