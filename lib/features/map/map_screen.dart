@@ -216,6 +216,7 @@ class _MapScreenState extends State<MapScreen> {
               latitude: _userLat,
               longitude: _userLng,
               level: _isLoading ? null : _safetyState.level,
+              incidents: _nearbyIncidents,
             ),
           ),
           if (!_isLoading && _currentZone != null)

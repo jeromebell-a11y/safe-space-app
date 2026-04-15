@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../core/models/incident.dart';
 import '../../../core/models/safety_level.dart';
 import '../../../core/theme/app_colors.dart';
+import 'incident_marker_widget.dart';
 
 class SafeSpaceMap extends StatelessWidget {
   const SafeSpaceMap({
@@ -11,11 +13,13 @@ class SafeSpaceMap extends StatelessWidget {
     this.latitude,
     this.longitude,
     this.level,
+    this.incidents = const [],
   });
 
   final double? latitude;
   final double? longitude;
   final SafetyLevel? level;
+  final List<Incident> incidents;
 
   static const _defaultLat = 37.7749;
   static const _defaultLng = -122.4194;
@@ -99,6 +103,24 @@ class SafeSpaceMap extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        if (incidents.isNotEmpty)
+          MarkerLayer(
+            markers: incidents
+                .map(
+                  (incident) => Marker(
+                    point: LatLng(
+                      incident.location.latitude,
+                      incident.location.longitude,
+                    ),
+                    width: 28,
+                    height: 28,
+                    child: IncidentMarkerWidget(
+                      severity: incident.severity,
+                    ),
+                  ),
+                )
+                .toList(),
           ),
       ],
     );
