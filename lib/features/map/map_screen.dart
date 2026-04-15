@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models/report.dart';
 import '../../core/models/safety_level.dart';
 import '../../core/models/safety_state.dart';
 import '../../core/services/geohash_service.dart';
@@ -7,7 +8,7 @@ import '../../core/services/location_service.dart';
 import '../../core/services/nearby_reports_repository.dart';
 import '../../core/services/safety_scoring_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../safety/safety_details_screen.dart';
+import '../safety/nearby_activity_screen.dart';
 import '../sharing/share_safety_screen.dart';
 import 'widgets/map_placeholder.dart';
 import 'widgets/safety_status_panel.dart';
@@ -34,6 +35,7 @@ class _MapScreenState extends State<MapScreen> {
     bullets: ['All clear — no incidents reported nearby'],
   );
 
+  List<Report> _nearbyReports = const [];
   bool _isLoading = true;
 
   @override
@@ -60,6 +62,7 @@ class _MapScreenState extends State<MapScreen> {
       final reports = await _repository.fetchRecent(geohashPrefix: prefix);
       if (!mounted) return;
       setState(() {
+        _nearbyReports = reports;
         _safetyState = _scoringService.deriveFromReports(reports);
         _isLoading = false;
       });
@@ -108,7 +111,7 @@ class _MapScreenState extends State<MapScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) =>
-                        SafetyDetailsScreen(state: _safetyState),
+                        NearbyActivityScreen(reports: _nearbyReports),
                   ),
                 );
               },
