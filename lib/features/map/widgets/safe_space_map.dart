@@ -25,28 +25,55 @@ class SafeSpaceMap extends StatelessWidget {
   static const _defaultLat = 37.7749;
   static const _defaultLng = -122.4194;
   static const _defaultZoom = 15.0;
-  static const _areaRadius = 300.0;
 
   LatLng get _center => LatLng(
         latitude ?? _defaultLat,
         longitude ?? _defaultLng,
       );
 
-  Color _areaColor() => switch (level) {
-        SafetyLevel.elevated =>
-          AppColors.elevatedSafety.withValues(alpha: 0.12),
-        SafetyLevel.high =>
-          AppColors.highSafety.withValues(alpha: 0.12),
-        _ => AppColors.lowSafety.withValues(alpha: 0.10),
+  Color _tintBase() => switch (level) {
+        SafetyLevel.elevated => AppColors.elevatedSafety,
+        SafetyLevel.high => AppColors.highSafety,
+        _ => AppColors.lowSafety,
       };
 
-  Color _areaBorderColor() => switch (level) {
-        SafetyLevel.elevated =>
-          AppColors.elevatedSafety.withValues(alpha: 0.3),
-        SafetyLevel.high =>
-          AppColors.highSafety.withValues(alpha: 0.3),
-        _ => AppColors.lowSafety.withValues(alpha: 0.25),
-      };
+  List<CircleMarker> _zoneTintCircles() {
+    final base = _tintBase();
+    return [
+      CircleMarker(
+        point: _center,
+        radius: 500,
+        useRadiusInMeter: true,
+        color: base.withValues(alpha: 0.04),
+        borderColor: Colors.transparent,
+        borderStrokeWidth: 0,
+      ),
+      CircleMarker(
+        point: _center,
+        radius: 350,
+        useRadiusInMeter: true,
+        color: base.withValues(alpha: 0.06),
+        borderColor: Colors.transparent,
+        borderStrokeWidth: 0,
+      ),
+      CircleMarker(
+        point: _center,
+        radius: 200,
+        useRadiusInMeter: true,
+        color: base.withValues(alpha: 0.08),
+        borderColor: base.withValues(alpha: 0.2),
+        borderStrokeWidth: 1,
+      ),
+      CircleMarker(
+        point: _center,
+        radius: 80,
+        useRadiusInMeter: true,
+        color: base.withValues(alpha: 0.10),
+        borderColor: base.withValues(alpha: 0.25),
+        borderStrokeWidth: 1.5,
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,19 +92,8 @@ class SafeSpaceMap extends StatelessWidget {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.safespace.app',
         ),
-        if (hasLocation)
-          CircleLayer(
-            circles: [
-              CircleMarker(
-                point: _center,
-                radius: _areaRadius,
-                useRadiusInMeter: true,
-                color: _areaColor(),
-                borderColor: _areaBorderColor(),
-                borderStrokeWidth: 1.5,
-              ),
-            ],
-          ),
+        if (hasLocation && level != null)
+          CircleLayer(circles: _zoneTintCircles()),
         if (hasLocation)
           MarkerLayer(
             markers: [
