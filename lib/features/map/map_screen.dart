@@ -157,7 +157,12 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(child: MapPlaceholder()),
+          Positioned.fill(
+            child: MapPlaceholder(
+              level: _isLoading ? null : _safetyState.level,
+              zone: _currentZone,
+            ),
+          ),
           if (!_isLoading && _currentZone != null)
             Positioned(
               top: 0,
