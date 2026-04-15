@@ -8,7 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import 'incident_marker_widget.dart';
 import 'incident_preview_sheet.dart';
 
-class SafeSpaceMap extends StatelessWidget {
+class SafeSpaceMap extends StatefulWidget {
   const SafeSpaceMap({
     super.key,
     this.latitude,
@@ -22,16 +22,35 @@ class SafeSpaceMap extends StatelessWidget {
   final SafetyLevel? level;
   final List<Incident> incidents;
 
+  @override
+  State<SafeSpaceMap> createState() => _SafeSpaceMapState();
+}
+
+class _SafeSpaceMapState extends State<SafeSpaceMap> {
+  final _mapController = MapController();
+  bool _hasMovedToUser = false;
+
   static const _defaultLat = 37.7749;
   static const _defaultLng = -122.4194;
   static const _defaultZoom = 15.0;
 
   LatLng get _center => LatLng(
-        latitude ?? _defaultLat,
-        longitude ?? _defaultLng,
+        widget.latitude ?? _defaultLat,
+        widget.longitude ?? _defaultLng,
       );
 
-  Color _tintBase() => switch (level) {
+  @override
+  void didUpdateWidget(covariant SafeSpaceMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_hasMovedToUser &&
+        widget.latitude != null &&
+        widget.longitude != null) {
+      _hasMovedToUser = true;
+      _mapController.move(_center, _defaultZoom);
+    }
+  }
+
+  Color _tintBase() => switch (widget.level) {
         SafetyLevel.elevated => AppColors.elevatedSafety,
         SafetyLevel.high => AppColors.highSafety,
         _ => AppColors.lowSafety,
@@ -77,9 +96,10 @@ class SafeSpaceMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasLocation = latitude != null && longitude != null;
+    final hasLocation = widget.latitude != null && widget.longitude != null;
 
     return FlutterMap(
+      mapController: _mapController,
       options: MapOptions(
         initialCenter: _center,
         initialZoom: _defaultZoom,
@@ -92,7 +112,7 @@ class SafeSpaceMap extends StatelessWidget {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.safespace.app',
         ),
-        if (hasLocation && level != null)
+        if (hasLocation && widget.level != null)
           CircleLayer(circles: _zoneTintCircles()),
         if (hasLocation)
           MarkerLayer(
@@ -121,9 +141,9 @@ class SafeSpaceMap extends StatelessWidget {
               ),
             ],
           ),
-        if (incidents.isNotEmpty)
+        if (widget.incidents.isNotEmpty)
           MarkerLayer(
-            markers: incidents
+            markers: widget.incidents
                 .map(
                   (incident) => Marker(
                     point: LatLng(

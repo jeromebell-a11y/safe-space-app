@@ -155,6 +155,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
             const SizedBox(height: AppSpacing.xl),
+            if (_authService.currentUser != null)
+              Text(
+                'User ID\n${_authService.currentUser!.uid}',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
+                  fontSize: 10,
+                ),
+              ),
+            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),

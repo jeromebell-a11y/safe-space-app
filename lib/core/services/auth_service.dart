@@ -7,6 +7,8 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  String? get currentUid => _auth.currentUser?.uid;
+
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<UserCredential> signInAnonymously() {

@@ -17,6 +17,7 @@ class Report {
     required this.createdAt,
     this.status = ReportStatus.pending,
     this.confidenceScore,
+    required this.submittedByUid,
   });
 
   final String id;
@@ -28,6 +29,7 @@ class Report {
   final DateTime createdAt;
   final ReportStatus status;
   final double? confidenceScore;
+  final String submittedByUid;
 
   Report copyWith({
     ReportCategory? category,
@@ -37,6 +39,7 @@ class Report {
     String? geohash,
     ReportStatus? status,
     double? confidenceScore,
+    String? submittedByUid,
   }) {
     return Report(
       id: id,
@@ -48,6 +51,7 @@ class Report {
       createdAt: createdAt,
       status: status ?? this.status,
       confidenceScore: confidenceScore ?? this.confidenceScore,
+      submittedByUid: submittedByUid ?? this.submittedByUid,
     );
   }
 
@@ -61,6 +65,7 @@ class Report {
       'geohash': geohash,
       'createdAt': createdAt.toIso8601String(),
       'status': status.name,
+      'submittedByUid': submittedByUid,
       if (confidenceScore != null) 'confidenceScore': confidenceScore,
     };
   }
@@ -76,6 +81,7 @@ class Report {
       createdAt: DateTime.parse(map['createdAt'] as String),
       status: ReportStatus.values.byName(map['status'] as String),
       confidenceScore: (map['confidenceScore'] as num?)?.toDouble(),
+      submittedByUid: map['submittedByUid'] as String? ?? '',
     );
   }
 }

@@ -34,7 +34,8 @@ service cloud.firestore {
 function isValidReport(data) {
   return data.keys().hasAll([
            'id', 'category', 'notes', 'hasMedia',
-           'location', 'geohash', 'createdAt', 'status'
+           'location', 'geohash', 'createdAt', 'status',
+           'submittedByUid'
          ])
       && data.id is string
       && data.category is string
@@ -42,6 +43,7 @@ function isValidReport(data) {
       && data.hasMedia is bool
       && data.geohash is string
       && data.status is string
+      && data.submittedByUid is string
       && data.location is map
       && data.location.keys().hasAll(['latitude', 'longitude'])
       && data.location.latitude is number

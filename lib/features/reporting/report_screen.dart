@@ -6,6 +6,7 @@ import '../../core/models/geo_location.dart';
 import '../../core/models/report.dart';
 import '../../core/models/report_category.dart';
 import '../../core/models/report_status.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/geohash_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/reports_repository.dart';
@@ -28,6 +29,7 @@ class _ReportScreenState extends State<ReportScreen> {
   final _repository = ReportsRepository();
   final _locationService = LocationService();
   final _geohashService = GeohashService();
+  final _authService = AuthService();
   ReportCategory? _selectedCategory;
   final _notesController = TextEditingController();
   bool _hasMockMedia = false;
@@ -53,6 +55,16 @@ class _ReportScreenState extends State<ReportScreen> {
   Future<void> _submit() async {
     if (_selectedCategory == null) return;
 
+    final uid = _authService.currentUid;
+    if (uid == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must be signed in to submit a report.')),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -77,6 +89,7 @@ class _ReportScreenState extends State<ReportScreen> {
         geohash: geohash,
         createdAt: DateTime.now(),
         status: ReportStatus.pending,
+        submittedByUid: uid,
       );
 
       await _repository.submitReport(report);
