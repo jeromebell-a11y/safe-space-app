@@ -49,10 +49,10 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNearbyReports();
+    _loadSafetyData();
   }
 
-  Future<void> _loadNearbyReports() async {
+  Future<void> _loadSafetyData() async {
     String? prefix;
 
     try {
@@ -66,27 +66,90 @@ class _MapScreenState extends State<MapScreen> {
       // Location unavailable — fall through to unfiltered query.
     }
 
+    // Try cached zone first for immediate display.
+    bool hasCachedZone = false;
+    if (prefix != null) {
+      try {
+        final cachedZone =
+            await _zonesRepository.fetchSafetyZone(prefix);
+        if (cachedZone != null && mounted) {
+          hasCachedZone = true;
+          setState(() {
+            _currentZone = cachedZone;
+            _safetyState = _safetyStateFromZone(cachedZone);
+            _isLoading = false;
+          });
+        }
+      } catch (_) {
+        // Cache read failed — continue to reports.
+      }
+    }
+
+    // Always load reports for transparency + details screen.
     try {
       final reports = await _repository.fetchRecent(geohashPrefix: prefix);
       if (!mounted) return;
+
+      final reportState = _scoringService.deriveFromReports(reports);
+      final derivedZone = _zoneService.deriveFromReports(
+        reports,
+        prefix ?? 'unknown',
+      );
+
       setState(() {
         _nearbyReports = reports;
-        _safetyState = _scoringService.deriveFromReports(reports);
-        _currentZone = _zoneService.deriveFromReports(
-          reports,
-          prefix ?? 'unknown',
-        );
+        _safetyState = reportState;
+        _currentZone = derivedZone;
         _isLoading = false;
       });
-      if (_currentZone != null) {
-        _zonesRepository.upsertSafetyZone(_currentZone!).catchError((_) {});
-      }
+
+      _zonesRepository.upsertSafetyZone(derivedZone).catchError((_) {});
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
+      if (!hasCachedZone) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  SafetyState _safetyStateFromZone(SafetyZone zone) {
+    final level = zone.riskScore >= 8.0
+        ? SafetyLevel.high
+        : zone.riskScore >= 3.0
+            ? SafetyLevel.elevated
+            : SafetyLevel.low;
+
+    final label = switch (level) {
+      SafetyLevel.low => 'Low Activity',
+      SafetyLevel.elevated => 'Elevated Activity',
+      SafetyLevel.high => 'High Activity',
+    };
+
+    final summary = switch (level) {
+      SafetyLevel.low => 'Minimal recent activity in your area.',
+      SafetyLevel.elevated =>
+        'Recent incident activity suggests increased awareness in this area.',
+      SafetyLevel.high =>
+        'Multiple significant reports suggest caution in this area.',
+    };
+
+    final age = DateTime.now().difference(zone.lastUpdated);
+    final recency = age.inMinutes < 60
+        ? '${age.inMinutes}m ago'
+        : '${age.inHours}h ago';
+
+    return SafetyState(
+      level: level,
+      label: label,
+      summary: summary,
+      bullets: [
+        '${zone.incidentCount} report${zone.incidentCount == 1 ? '' : 's'}'
+            ' nearby (risk score: ${zone.riskScore.toStringAsFixed(1)})',
+        'Last updated: $recency',
+      ],
+    );
   }
 
   @override
