@@ -9,6 +9,7 @@ import '../../core/services/location_service.dart';
 import '../../core/services/nearby_reports_repository.dart';
 import '../../core/services/safety_scoring_service.dart';
 import '../../core/services/safety_zone_service.dart';
+import '../../core/services/safety_zones_repository.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../safety/nearby_activity_screen.dart';
@@ -30,6 +31,7 @@ class _MapScreenState extends State<MapScreen> {
   final _geohashService = GeohashService();
   final _scoringService = SafetyScoringService();
   final _zoneService = SafetyZoneService();
+  final _zonesRepository = SafetyZonesRepository();
 
   static const _geohashPrefixLength = 5;
 
@@ -76,6 +78,9 @@ class _MapScreenState extends State<MapScreen> {
         );
         _isLoading = false;
       });
+      if (_currentZone != null) {
+        _zonesRepository.upsertSafetyZone(_currentZone!).catchError((_) {});
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
