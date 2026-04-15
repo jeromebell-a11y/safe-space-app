@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────
+    // Reports collection — user-submitted safety reports
+    // ──────────────────────────────────────────────
+    match /reports/{reportId} {
+
+      // Allow reads for MVP (no auth filter yet)
+      allow read: if true;
+
+      // Allow creates with field validation
+      allow create: if isValidReport(request.resource.data);
+
+      // Deny updates and deletes for MVP
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ──────────────────────────────────────────────
+    // Deny all access to any other collection
+    // ──────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ──────────────────────────────────────────────
+// Validation: required fields and types
+// ──────────────────────────────────────────────
+function isValidReport(data) {
+  return data.keys().hasAll([
+           'id', 'category', 'notes', 'hasMedia',
+           'location', 'geohash', 'createdAt', 'status'
+         ])
+      && data.id is string
+      && data.category is string
+      && data.notes is string
+      && data.hasMedia is bool
+      && data.geohash is string
+      && data.status is string
+      && data.location is map
+      && data.location.keys().hasAll(['latitude', 'longitude'])
+      && data.location.latitude is number
+      && data.location.longitude is number;
+}
