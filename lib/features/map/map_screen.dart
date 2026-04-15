@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../../core/models/report.dart';
 import '../../core/models/safety_level.dart';
 import '../../core/models/safety_state.dart';
+import '../../core/models/safety_zone.dart';
 import '../../core/services/geohash_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/nearby_reports_repository.dart';
 import '../../core/services/safety_scoring_service.dart';
+import '../../core/services/safety_zone_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../safety/nearby_activity_screen.dart';
 import '../sharing/share_safety_screen.dart';
@@ -25,6 +27,7 @@ class _MapScreenState extends State<MapScreen> {
   final _locationService = LocationService();
   final _geohashService = GeohashService();
   final _scoringService = SafetyScoringService();
+  final _zoneService = SafetyZoneService();
 
   static const _geohashPrefixLength = 5;
 
@@ -36,6 +39,8 @@ class _MapScreenState extends State<MapScreen> {
   );
 
   List<Report> _nearbyReports = const [];
+  // ignore: unused_field
+  SafetyZone? _currentZone;
   bool _isLoading = true;
 
   @override
@@ -64,6 +69,10 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         _nearbyReports = reports;
         _safetyState = _scoringService.deriveFromReports(reports);
+        _currentZone = _zoneService.deriveFromReports(
+          reports,
+          prefix ?? 'unknown',
+        );
         _isLoading = false;
       });
     } catch (_) {
