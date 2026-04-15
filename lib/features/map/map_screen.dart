@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models/incident.dart';
 import '../../core/models/report.dart';
 import '../../core/models/safety_level.dart';
 import '../../core/models/safety_state.dart';
 import '../../core/models/safety_zone.dart';
 import '../../core/services/geohash_service.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/nearby_incidents_repository.dart';
 import '../../core/services/nearby_reports_repository.dart';
 import '../../core/services/safety_scoring_service.dart';
 import '../../core/services/safety_zone_service.dart';
@@ -26,7 +28,8 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final _repository = NearbyReportsRepository();
+  final _reportsRepository = NearbyReportsRepository();
+  final _incidentsRepository = NearbyIncidentsRepository();
   final _locationService = LocationService();
   final _geohashService = GeohashService();
   final _scoringService = SafetyScoringService();
@@ -43,6 +46,7 @@ class _MapScreenState extends State<MapScreen> {
   );
 
   List<Report> _nearbyReports = const [];
+  List<Incident> _nearbyIncidents = const [];
   SafetyZone? _currentZone;
   bool _isLoading = true;
 
@@ -81,32 +85,74 @@ class _MapScreenState extends State<MapScreen> {
           });
         }
       } catch (_) {
-        // Cache read failed — continue to reports.
+        // Cache read failed — continue.
       }
     }
 
-    // Always load reports for transparency + details screen.
+    // Load incidents first as primary intelligence source.
     try {
-      final reports = await _repository.fetchRecent(geohashPrefix: prefix);
+      final incidents = await _incidentsRepository.fetchRecent(
+        geohashPrefix: prefix,
+      );
       if (!mounted) return;
 
-      final reportState = _scoringService.deriveFromReports(reports);
-      final derivedZone = _zoneService.deriveFromReports(
-        reports,
-        prefix ?? 'unknown',
+      if (incidents.isNotEmpty) {
+        final incidentState =
+            _scoringService.deriveFromIncidents(incidents);
+        setState(() {
+          _nearbyIncidents = incidents;
+          _safetyState = incidentState;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      // Incident read failed — continue to reports.
+    }
+
+    // Always load reports for transparency + fallback scoring.
+    try {
+      final reports = await _reportsRepository.fetchRecent(
+        geohashPrefix: prefix,
       );
+      if (!mounted) return;
 
       setState(() {
         _nearbyReports = reports;
-        _safetyState = reportState;
-        _currentZone = derivedZone;
-        _isLoading = false;
       });
 
-      _zonesRepository.upsertSafetyZone(derivedZone).catchError((_) {});
+      // Only derive scoring from reports if no incidents provided it.
+      if (_nearbyIncidents.isEmpty) {
+        final reportState = _scoringService.deriveFromReports(reports);
+        final derivedZone = _zoneService.deriveFromReports(
+          reports,
+          prefix ?? 'unknown',
+        );
+
+        setState(() {
+          _safetyState = reportState;
+          _currentZone = derivedZone;
+          _isLoading = false;
+        });
+
+        _zonesRepository
+            .upsertSafetyZone(derivedZone)
+            .catchError((_) {});
+      } else {
+        // Still persist zone derived from reports for caching.
+        final derivedZone = _zoneService.deriveFromReports(
+          reports,
+          prefix ?? 'unknown',
+        );
+        setState(() {
+          _currentZone = derivedZone;
+        });
+        _zonesRepository
+            .upsertSafetyZone(derivedZone)
+            .catchError((_) {});
+      }
     } catch (_) {
       if (!mounted) return;
-      if (!hasCachedZone) {
+      if (!hasCachedZone && _nearbyIncidents.isEmpty) {
         setState(() {
           _isLoading = false;
         });
@@ -207,8 +253,10 @@ class _MapScreenState extends State<MapScreen> {
               onViewDetails: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) =>
-                        NearbyActivityScreen(reports: _nearbyReports),
+                    builder: (_) => NearbyActivityScreen(
+                      incidents: _nearbyIncidents,
+                      reports: _nearbyReports,
+                    ),
                   ),
                 );
               },

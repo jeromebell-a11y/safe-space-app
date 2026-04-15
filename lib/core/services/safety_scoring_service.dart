@@ -1,3 +1,4 @@
+import '../models/incident.dart';
 import '../models/report.dart';
 import '../models/report_category.dart';
 import '../models/safety_level.dart';
@@ -13,8 +14,48 @@ class SafetyScoringService {
     ReportCategory.other: 1.0,
   };
 
+  static const _severityWeights = <int, double>{
+    5: 3.0,
+    4: 2.5,
+    3: 2.0,
+    2: 1.0,
+  };
+
   static const _elevatedThreshold = 3.0;
   static const _highThreshold = 8.0;
+
+  SafetyState deriveFromIncidents(List<Incident> incidents) {
+    if (incidents.isEmpty) {
+      return const SafetyState(
+        level: SafetyLevel.low,
+        label: 'Low Activity',
+        summary: 'No verified incidents in your area.',
+        bullets: ['All clear — no verified incidents nearby'],
+      );
+    }
+
+    final now = DateTime.now();
+    double totalScore = 0;
+
+    for (final incident in incidents) {
+      final age = now.difference(incident.createdAt);
+      final recencyWeight = _recencyWeight(age);
+      final severityWeight = _severityWeights[incident.severity] ?? 1.0;
+      totalScore += recencyWeight * severityWeight;
+    }
+
+    final level = _levelFromScore(totalScore);
+    final label = _labelForLevel(level);
+    final summary = _summaryForLevel(level);
+    final bullets = _buildIncidentBullets(incidents, now, totalScore);
+
+    return SafetyState(
+      level: level,
+      label: label,
+      summary: summary,
+      bullets: bullets,
+    );
+  }
 
   SafetyState deriveFromReports(List<Report> reports) {
     if (reports.isEmpty) {
@@ -119,5 +160,51 @@ class SafetyScoringService {
       });
 
     return sorted.first.key;
+  }
+
+  List<String> _buildIncidentBullets(
+    List<Incident> incidents,
+    DateTime now,
+    double score,
+  ) {
+    final last24h = incidents
+        .where((i) => now.difference(i.createdAt).inHours < 24)
+        .length;
+
+    final newest = incidents.first;
+    final age = now.difference(newest.createdAt);
+    final recency = age.inMinutes < 60
+        ? '${age.inMinutes}m ago'
+        : '${age.inHours}h ago';
+
+    final topType = _dominantType(incidents);
+
+    return [
+      '${incidents.length} verified incident${incidents.length == 1 ? '' : 's'}'
+          ' nearby (risk score: ${score.toStringAsFixed(1)})',
+      '$last24h in the last 24 hours',
+      'Most recent: ${_typeLabel(newest.type)}, $recency',
+      if (topType != null) 'Top concern: ${_typeLabel(topType)}',
+    ];
+  }
+
+  String? _dominantType(List<Incident> incidents) {
+    if (incidents.isEmpty) return null;
+
+    final counts = <String, int>{};
+    for (final i in incidents) {
+      counts[i.type] = (counts[i.type] ?? 0) + 1;
+    }
+
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return sorted.first.key;
+  }
+
+  String _typeLabel(String type) {
+    final category = ReportCategory.values.where((c) => c.name == type);
+    if (category.isNotEmpty) return category.first.label;
+    return type;
   }
 }

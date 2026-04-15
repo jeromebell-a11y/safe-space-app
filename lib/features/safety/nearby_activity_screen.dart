@@ -1,21 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../../core/models/incident.dart';
 import '../../core/models/report.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'widgets/nearby_activity_card.dart';
+import 'widgets/nearby_incident_card.dart';
 
 class NearbyActivityScreen extends StatelessWidget {
-  const NearbyActivityScreen({super.key, required this.reports});
+  const NearbyActivityScreen({
+    super.key,
+    this.reports = const [],
+    this.incidents = const [],
+  });
 
   final List<Report> reports;
+  final List<Incident> incidents;
+
+  bool get _isEmpty => incidents.isEmpty && reports.isEmpty;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Nearby Activity')),
-      body: reports.isEmpty ? _buildEmpty() : _buildList(),
+      body: _isEmpty ? _buildEmpty() : _buildList(),
     );
   }
 
@@ -38,7 +47,7 @@ class NearbyActivityScreen extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'There are no recent reports in your area.',
+              'There are no recent incidents or reports in your area.',
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -51,23 +60,36 @@ class NearbyActivityScreen extends StatelessWidget {
   }
 
   Widget _buildList() {
-    return ListView.builder(
+    return ListView(
       padding: const EdgeInsets.all(AppSpacing.xl),
-      itemCount: reports.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-            child: Text(
-              '${reports.length} report${reports.length == 1 ? '' : 's'} nearby',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textSecondary,
-              ),
+      children: [
+        if (incidents.isNotEmpty) ...[
+          Text(
+            '${incidents.length} verified incident${incidents.length == 1 ? '' : 's'}',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
-          );
-        }
-        return NearbyActivityCard(report: reports[index - 1]);
-      },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final incident in incidents)
+            NearbyIncidentCard(incident: incident),
+        ],
+        if (reports.isNotEmpty) ...[
+          if (incidents.isNotEmpty) const SizedBox(height: AppSpacing.lg),
+          Text(
+            '${reports.length} unverified report${reports.length == 1 ? '' : 's'}',
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final report in reports) NearbyActivityCard(report: report),
+        ],
+      ],
     );
   }
 }
