@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import '../features/auth/auth_gate.dart';
 import '../features/map/map_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/reporting/report_screen.dart';
@@ -14,7 +15,7 @@ class SafeSpaceApp extends StatelessWidget {
       title: 'Safe Space',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }
