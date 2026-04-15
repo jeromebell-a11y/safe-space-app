@@ -61,6 +61,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadSafetyData() async {
     String? prefix;
 
+    // Step 1: Get user location and derive geohash prefix.
     try {
       final position = await _locationService.getCurrentPosition();
       final geohash = _geohashService.encode(
@@ -78,89 +79,86 @@ class _MapScreenState extends State<MapScreen> {
       // Location unavailable — fall through to unfiltered query.
     }
 
-    // Try cached zone first for immediate display.
-    bool hasCachedZone = false;
+    // Step 2: Fetch backend safety zone as authoritative source.
+    bool hasBackendZone = false;
     if (prefix != null) {
       try {
-        final cachedZone =
+        final backendZone =
             await _zonesRepository.fetchSafetyZone(prefix);
-        if (cachedZone != null && mounted) {
-          hasCachedZone = true;
+        if (backendZone != null && mounted) {
+          hasBackendZone = true;
+          debugPrint('[SafeSpace] Backend zone used: $prefix');
           setState(() {
-            _currentZone = cachedZone;
-            _safetyState = _safetyStateFromZone(cachedZone);
+            _currentZone = backendZone;
+            _safetyState = _safetyStateFromZone(backendZone);
             _isLoading = false;
           });
         }
       } catch (_) {
-        // Cache read failed — continue.
+        // Zone read failed — will fall back to client derivation.
       }
     }
 
-    // Load incidents first as primary intelligence source.
+    // Step 3: Load incidents for markers + transparency (not for zone).
     try {
       final incidents = await _incidentsRepository.fetchRecent(
         geohashPrefix: prefix,
       );
       if (!mounted) return;
-
-      if (incidents.isNotEmpty) {
-        final incidentState =
-            _scoringService.deriveFromIncidents(incidents);
-        setState(() {
-          _nearbyIncidents = incidents;
-          _safetyState = incidentState;
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _nearbyIncidents = incidents;
+      });
     } catch (_) {
-      // Incident read failed — continue to reports.
+      // Incident read failed — markers will be empty.
     }
 
-    // Always load reports for transparency + fallback scoring.
+    // Step 4: Load reports for transparency.
     try {
       final reports = await _reportsRepository.fetchRecent(
         geohashPrefix: prefix,
       );
       if (!mounted) return;
-
       setState(() {
         _nearbyReports = reports;
       });
+    } catch (_) {
+      // Report read failed — list will be empty.
+    }
 
-      // Only derive scoring from reports if no incidents provided it.
-      if (_nearbyIncidents.isEmpty) {
-        final reportState = _scoringService.deriveFromReports(reports);
+    // Step 5: Fallback — derive zone client-side only if no backend zone.
+    if (!hasBackendZone && mounted) {
+      debugPrint('[SafeSpace] Fallback: deriving zone client-side');
+      if (_nearbyIncidents.isNotEmpty) {
+        final incidentState =
+            _scoringService.deriveFromIncidents(_nearbyIncidents);
         final derivedZone = _zoneService.deriveFromReports(
-          reports,
+          _nearbyReports,
           prefix ?? 'unknown',
         );
-
+        setState(() {
+          _safetyState = incidentState;
+          _currentZone = derivedZone;
+          _isLoading = false;
+        });
+        _zonesRepository
+            .upsertSafetyZone(derivedZone)
+            .catchError((_) {});
+      } else if (_nearbyReports.isNotEmpty) {
+        final reportState =
+            _scoringService.deriveFromReports(_nearbyReports);
+        final derivedZone = _zoneService.deriveFromReports(
+          _nearbyReports,
+          prefix ?? 'unknown',
+        );
         setState(() {
           _safetyState = reportState;
           _currentZone = derivedZone;
           _isLoading = false;
         });
-
         _zonesRepository
             .upsertSafetyZone(derivedZone)
             .catchError((_) {});
       } else {
-        // Still persist zone derived from reports for caching.
-        final derivedZone = _zoneService.deriveFromReports(
-          reports,
-          prefix ?? 'unknown',
-        );
-        setState(() {
-          _currentZone = derivedZone;
-        });
-        _zonesRepository
-            .upsertSafetyZone(derivedZone)
-            .catchError((_) {});
-      }
-    } catch (_) {
-      if (!mounted) return;
-      if (!hasCachedZone && _nearbyIncidents.isEmpty) {
         setState(() {
           _isLoading = false;
         });
